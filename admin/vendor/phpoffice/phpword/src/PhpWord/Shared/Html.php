@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file is part of PHPWord - A pure PHP library for reading and writing
  * word processing documents.
@@ -17,6 +18,8 @@
 
 namespace PhpOffice\PhpWord\Shared;
 
+use DiDom\Document;
+
 use DOMAttr;
 use DOMDocument;
 use DOMNode;
@@ -29,6 +32,7 @@ use PhpOffice\PhpWord\Settings;
 use PhpOffice\PhpWord\SimpleType\Jc;
 use PhpOffice\PhpWord\SimpleType\NumberFormat;
 use PhpOffice\PhpWord\Style\Paragraph;
+use PhpOffice\PhpWord\Style\Section as SectionStyle;
 
 /**
  * Common Html functions.
@@ -71,10 +75,10 @@ class Html
         // Preprocess: remove all line ends, decode HTML entity,
         // fix ampersand and angle brackets and add body tag for HTML fragments
         $html = str_replace(["\n", "\r"], '', $html);
-        $html = str_replace(['&lt;', '&gt;', '&amp;', '&quot;'], ['_lt_', '_gt_', '_amp_', '_quot_'], $html);
+        $html = str_replace(['&lt;', '&gt;', '&amp;', '&quot;'], ['tublm_lt_tublm', 'tublm_gt_tublm', 'tublm_amp_tublm', 'tublm_quot_tublm'], $html);
         $html = html_entity_decode($html, ENT_QUOTES, 'UTF-8');
         $html = str_replace('&', '&amp;', $html);
-        $html = str_replace(['_lt_', '_gt_', '_amp_', '_quot_'], ['&lt;', '&gt;', '&amp;', '&quot;'], $html);
+        $html = str_replace(['tublm_lt_tublm', 'tublm_gt_tublm', 'tublm_amp_tublm', 'tublm_quot_tublm'], ['&lt;', '&gt;', '&amp;', '&quot;'], $html);
 
         if (false === $fullHTML) {
             $html = '<body>' . $html . '</body>';
@@ -84,13 +88,23 @@ class Html
         if (\PHP_VERSION_ID < 80000) {
             $orignalLibEntityLoader = libxml_disable_entity_loader(true);
         }
-        $dom = new DOMDocument();
-        $dom->preserveWhiteSpace = $preserveWhiteSpace;
-        $dom->loadXML($html);
-        static::$xpath = new DOMXPath($dom);
-        $node = $dom->getElementsByTagName('body');
+        // $dom = new DOMDocument();
+        // $dom->preserveWhiteSpace = $preserveWhiteSpace;
+        // $dom->loadXML($html);
 
-        static::parseNode($node->item(0), $element);
+
+
+        $dom = new Document($html);
+
+
+        // static::$xpath = new DOMXPath($dom);
+        // $node = $dom->getElementsByTagName('body');
+        // var_dump($dom->find('body')[0]->node);
+        // die();
+
+        if($dom->has('body')){ 
+            static::parseNode($dom->first('body')->node, $element);
+        }   
         if (\PHP_VERSION_ID < 80000) {
             libxml_disable_entity_loader($orignalLibEntityLoader);
         }
@@ -187,6 +201,8 @@ class Html
      */
     protected static function parseNode($node, $element, $styles = [], $data = []): void
     {
+
+        // var_dump($node);
         if ($node->nodeName == 'style') {
             self::$css = new Css($node->textContent);
             self::$css->process();
@@ -238,7 +254,7 @@ class Html
 
         $newElement = null;
         $keys = ['node', 'element', 'styles', 'data', 'argument1', 'argument2'];
-
+        // var_dump($node);
         if (isset($nodes[$node->nodeName])) {
             // Execute method based on node mapping table and return $newElement or null
             // Arguments are passed by reference
@@ -280,6 +296,7 @@ class Html
     {
         if ('li' != $node->nodeName) {
             $cNodes = $node->childNodes;
+            // var_dump($cNodes);
             if (!empty($cNodes)) {
                 foreach ($cNodes as $cNode) {
                     if ($element instanceof AbstractContainer || $element instanceof Table || $element instanceof Row) {
@@ -363,15 +380,21 @@ class Html
      */
     protected static function parseText($node, $element, &$styles): void
     {
+        // static $itxt = 0;
         $styles['font'] = self::recursiveParseStylesInHierarchy($node, $styles['font']);
 
         //alignment applies on paragraph, not on font. Let's copy it there
         if (isset($styles['font']['alignment']) && is_array($styles['paragraph'])) {
             $styles['paragraph']['alignment'] = $styles['font']['alignment'];
         }
-
+        //25 30
+        // $itxt++;
         if (is_callable([$element, 'addText'])) {
-            $element->addText($node->nodeValue, $styles['font'], $styles['paragraph']);
+            //allen mark
+            if (strlen(trim($node->nodeValue)) > 0) {
+                // echo '['.trim($node->nodeValue).']';
+                $element->addText(trim($node->nodeValue), $styles['font'], $styles['paragraph']);
+            }
         }
     }
 
@@ -888,6 +911,16 @@ class Html
      */
     protected static function parseImage($node, $element)
     {
+        // var_dump(  $element->getStyle()->getPageSizeW());
+        // var_dump( Drawing::twipsToPixels($element->getStyle()->getPageSizeW()));die;
+        $contentWidth = 0;
+        if ($element->getStyle()) {
+            $pageSize = $element->getStyle()->getPageSizeW();
+            $marginLeft = $element->getStyle()->getMarginLeft();
+            $marginRight = $element->getStyle()->getMarginRight();
+            $contentWidth = round(Drawing::twipsToPixels($pageSize - $marginLeft - $marginRight));
+        }
+        // var_dump(Drawing::twipsToPixels($element->getStyle()->getPageSizeW()  ));die;
         $style = [];
         $src = null;
         foreach ($node->attributes as $attribute) {
@@ -898,14 +931,22 @@ class Html
                     break;
                 case 'width':
                     $width = $attribute->value;
-                    $style['width'] = $width;
+                    if ($contentWidth && $width <= $contentWidth) {
+                        $style['width'] = $width;
+                    } else {
+                        $style['width'] = $contentWidth;
+                    }
+
                     $style['unit'] = \PhpOffice\PhpWord\Style\Image::UNIT_PX;
 
                     break;
                 case 'height':
-                    $height = $attribute->value;
-                    $style['height'] = $height;
-                    $style['unit'] = \PhpOffice\PhpWord\Style\Image::UNIT_PX;
+                    // if($contentWidth && $width <= $contentWidth){
+                    //         $height = $attribute->value;
+                    //         $style['height'] = $height;
+                    //         $style['unit'] = \PhpOffice\PhpWord\Style\Image::UNIT_PX;
+                    // }
+
 
                     break;
                 case 'style':
@@ -941,22 +982,28 @@ class Html
         $originSrc = $src;
         if (strpos($src, 'data:image') !== false) {
             $tmpDir = Settings::getTempDir() . '/';
-
+            // echo $src;
             $match = [];
             preg_match('/data:image\/(\w+);base64,(.+)/', $src, $match);
 
             $src = $imgFile = $tmpDir . uniqid() . '.' . $match[1];
+            //allen mark
+            if (1 || is_file($imgFile)) {
+                // echo $imgFile;
+                $ifp = @fopen($imgFile, 'wb');
 
-            $ifp = fopen($imgFile, 'wb');
-
-            if ($ifp !== false) {
-                fwrite($ifp, base64_decode($match[2]));
-                fclose($ifp);
+                if ($ifp !== false) {
+                    fwrite($ifp, base64_decode($match[2]));
+                    fclose($ifp);
+                } else {
+                    return null;
+                }
             }
         }
         $src = urldecode($src);
 
-        if (!is_file($src)
+        if (
+            !is_file($src)
             && null !== self::$options
             && isset(self::$options['IMG_SRC_SEARCH'], self::$options['IMG_SRC_REPLACE'])
         ) {
@@ -968,9 +1015,13 @@ class Html
                 $tmpDir = Settings::getTempDir() . '/';
                 $match = [];
                 preg_match('/.+\.(\w+)$/', $src, $match);
-                $src = $tmpDir . uniqid();
+                $src = $tmpDir . \md5($src);
                 if (isset($match[1])) {
                     $src .= '.' . $match[1];
+                    //allen mark
+                    if ($match[1] == 'svg') {
+                        return null;
+                    }
                 }
 
                 $ifp = fopen($src, 'wb');
@@ -980,12 +1031,23 @@ class Html
                     fclose($ifp);
                 }
             }
+        } //allen mark
+        if (empty($style) && $contentWidth) {
+            $style['width'] = $contentWidth;
+            $style['unit'] = \PhpOffice\PhpWord\Style\Image::UNIT_PX;
         }
-
         if (is_file($src)) {
+            //   //allen mark do not know 
+            $imageData = @getimagesize($src);
+            if (!is_array($imageData)) {
+                return null;
+            }
             $newElement = $element->addImage($src, $style);
         } else {
-            throw new Exception("Could not load image $originSrc");
+
+            //allen mark
+            return null;
+            // throw new Exception("Could not load image $originSrc");
         }
 
         return $newElement;

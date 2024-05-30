@@ -270,7 +270,9 @@ abstract class AbstractContainer extends AbstractElement
         // Check if a method is valid for current container
         if (isset($validContainers[$method])) {
             if (!in_array($this->container, $validContainers[$method])) {
-                throw new BadMethodCallException("Cannot add {$method} in {$this->container}.");
+                // throw new BadMethodCallException("Cannot add {$method} in {$this->container}.");
+                // allen mark
+                return false;
             }
         }
 
@@ -281,7 +283,10 @@ abstract class AbstractContainer extends AbstractElement
             $allowedDocParts = $rules[1];
             foreach ($containers as $container) {
                 if ($this->container == $container && !in_array($this->getDocPart(), $allowedDocParts)) {
-                    throw new BadMethodCallException("Cannot add {$method} in {$this->container}.");
+                    // throw new BadMethodCallException("Cannot add {$method} in {$this->container}.");
+                    // allen mark
+                    return false;
+
                 }
             }
         }

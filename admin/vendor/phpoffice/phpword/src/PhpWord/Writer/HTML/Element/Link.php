@@ -39,8 +39,13 @@ class Link extends Text
 
         $prefix = $this->element->isInternal() ? '#' : '';
         $content = $this->writeOpening();
+//    var_dump($this->element);
+        // echo '['.$this->element->getSource().']';
+        
+        //allen mark
         $content .= "<a href=\"{$prefix}"
-            . $this->parentWriter->escapeHTML($this->element->getSource())
+            // . $this->parentWriter->escapeHTML($this->element->getSource())
+            . $this->parentWriter->escapeHTML($this->element->getSource()==null?'':$this->element->getSource()) //ok
             . '">'
             . $this->parentWriter->escapeHTML($this->element->getText())
             . '</a>';

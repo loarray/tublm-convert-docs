@@ -26,7 +26,7 @@ abstract class Node
      *
      * @var DOMElement|DOMText|DOMComment|DOMCdataSection|DOMDocumentFragment
      */
-    protected $node;
+    public $node;
 
     /**
      * Adds a new child at the start of the children.

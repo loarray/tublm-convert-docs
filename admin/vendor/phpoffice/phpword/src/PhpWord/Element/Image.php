@@ -439,7 +439,9 @@ class Image extends AbstractElement
             $imageData = @getimagesize($this->source);
         }
         if (!is_array($imageData)) {
-            throw new InvalidImageException(sprintf('Invalid image: %s', $this->source));
+            // allen mark
+            return ;
+            // throw new InvalidImageException(sprintf('Invalid image: %s', $this->source));
         }
         [$actualWidth, $actualHeight, $imageType] = $imageData;
 
@@ -449,7 +451,9 @@ class Image extends AbstractElement
             $supportedTypes = array_merge($supportedTypes, [IMAGETYPE_BMP, IMAGETYPE_TIFF_II, IMAGETYPE_TIFF_MM]);
         }
         if (!in_array($imageType, $supportedTypes)) {
-            throw new UnsupportedImageTypeException();
+                    // allen mark
+                    return ;
+            // throw new UnsupportedImageTypeException();
         }
 
         // Define image functions

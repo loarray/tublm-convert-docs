@@ -59,6 +59,7 @@ class XMLReader
         if (file_exists($zipFile) === false) {
             throw new Exception('Cannot find archive file.');
         }
+// echo   $zipFile;
 
         $zip = new ZipArchive();
         $zip->open($zipFile);

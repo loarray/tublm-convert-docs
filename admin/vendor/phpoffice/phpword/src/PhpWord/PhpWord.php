@@ -313,6 +313,9 @@ class PhpWord
         $writer = IOFactory::createWriter($this, $format);
 
         if ($download === true) {
+
+ 
+
             header('Content-Description: File Transfer');
             header('Content-Disposition: attachment; filename="' . $filename . '"');
             header('Content-Type: ' . $mime[$format]);

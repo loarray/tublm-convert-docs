@@ -119,7 +119,7 @@ class Rels extends AbstractPart
             }
             $xmlWriter->endElement();
         } else {
-            throw new Exception('Invalid parameters passed.');
+            // throw new Exception('Invalid parameters passed.');
         }
     }
 }
